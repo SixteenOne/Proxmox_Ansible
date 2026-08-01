@@ -1,0 +1,7 @@
+---
+pmx_servers:
+  nostromo:
+    api_user: root@pam
+    api_host: nostromo
+    api_password: "{{ lookup('env', 'PROXMOX_PASSWORD') }}" # echo 'export PROXMOX_PASSWORD="your-secret-here"' >> ~/.bashrc && source ~/.bashrc
+    api_node: nostromo
