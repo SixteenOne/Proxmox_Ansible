@@ -1,0 +1,58 @@
+- name: Delete old template VM if exists
+  ansible.builtin.shell: |
+    if qm status {{ item.value.vmid }} &> /dev/null; then
+      qm stop {{ item.value.vmid }} || true
+      qm destroy {{ item.value.vmid }}
+    fi
+  ignore_errors: yes
+  when: item.value.recreate is defined and item.value.recreate == true
+
+- name: Download {{ item.value.name }} image
+  ansible.builtin.get_url:
+    url: "{{ item.value.url }}/{{ item.value.image }}"
+    dest: "/tmp/{{ item.value.image }}"
+  when: item.value.download is defined and item.value.download == true
+
+- name: Copy Image to Proxmox Host "{{ item.value.name }}"
+  ansible.builtin.copy:
+    src: "{{ item.value.file }}"
+    dest: "/tmp/{{ item.value.image }}"
+  delegate_to: "{{ inventory_hostname }}"
+  when: item.value.file is defined
+
+- name: Create VM
+  ansible.builtin.shell: |
+    qm create {{ item.value.vmid }} \
+    --name {{ item.value.name }} \
+    --memory 2048 \
+    --cores 4 \
+    --net0 virtio,bridge=vmbr0
+
+- name: Configure VM settings
+  ansible.builtin.shell: |
+    qm importdisk {{ item.value.vmid }} /tmp/{{ item.value.image }} local-lvm
+    qm set {{ item.value.vmid }} --scsihw virtio-scsi-pci --scsi0 local-lvm:vm-{{ item.value.vmid }}-disk-0
+    qm set {{ item.value.vmid }} --ide2 local-lvm:cloudinit
+    qm set {{ item.value.vmid }} --boot c --bootdisk scsi0
+    qm set {{ item.value.vmid }} --serial0 socket --vga serial0
+    qm set {{ item.value.vmid }} --agent enabled=1
+    qm set {{ item.value.vmid }} --tags {{ item.value.tags }}
+    qm set {{ item.value.vmid }} --ipconfig0 ip=dhcp
+    qm set {{ item.value.vmid }} --ciuser {{ item.value.user }}
+    qm set {{ item.value.vmid }} --sshkey /tmp/id_ed25519.pub
+    qm set {{ item.value.vmid }} --cipassword "{{ lxc_password }}"
+    qm template {{ item.value.vmid }}
+
+- name: Add Description to Template
+  ansible.builtin.shell: |
+    qm set {{ item.value.vmid }} --description "# {{ item.value.description }}"
+
+- name: Change CPU to host
+  ansible.builtin.shell: |
+    qm set {{ item.value.vmid }} --cpu host
+  when: item.value.user in ['rhel', 'alma', 'rocky']
+
+- name: Cleanup temporary files
+  ansible.builtin.file:
+    path: "/tmp/{{ item.value.image }}"
+    state: absent
