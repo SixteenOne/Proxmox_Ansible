@@ -61,8 +61,8 @@
         dest: "/tmp/id_ed25519.pub"
       delegate_to: "{{ inventory_hostname }}"
 
-    - name: Include qemu_templates_build.yml
-      include_tasks: qemu_templates_build.yml
+    - name: Include vm_templates_build.yml
+      include_tasks: vm_templates_build.yml
       when: item.value.skip is not defined or item.value.skip == false
       loop: "{{ templates | dict2items }}"
 
