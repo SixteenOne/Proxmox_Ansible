@@ -1,0 +1,73 @@
+---
+- name: Create Proxmox VM Templates
+  hosts: oberon
+  become: true
+  gather_facts: false
+  vars_files:
+    - ~/.ansible/data/lxc_pw
+  vars:
+    templates:
+      fedora:
+        url: "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/x86_64/images"
+        image: "Fedora-Cloud-Base-Generic-43-1.6.x86_64.qcow2"
+        # url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images"
+        # image: "Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2"
+        name: "Fedora-Cloud-Template"
+        tags: "fedora"
+        user: "fedora"
+        vmid: "9001"
+        description: "Fedora 43 - Cloud Image Template"
+        download: true
+        # recreate: true
+        # skip: true
+      ubuntu:
+        url: "https://cloud-images.ubuntu.com/noble/current"
+        image: "noble-server-cloudimg-amd64.img"
+        name: "Ubuntu-Cloud-Template"
+        tags: "ubuntu"
+        user: "ubuntu"
+        vmid: "9002"
+        description: "Ubuntu 24.04 LTS - Cloud Image Template"
+        download: true
+        # recreate: true
+        # skip: true
+      alma:
+        url: "https://repo.almalinux.org/almalinux/10/cloud/x86_64/images/"
+        image: "AlmaLinux-10-GenericCloud-latest.x86_64.qcow2"
+        # url: "https://repo.almalinux.org/almalinux/9/cloud/x86_64/images"
+        # image: "AlmaLinux-9-GenericCloud-latest.x86_64.qcow2"
+        name: "Alma-Cloud-Template"
+        tags: "alma"
+        user: "alma"
+        vmid: "9003"
+        description: "AlmaLinux 10 - Cloud Image Template"
+        download: true
+        # recreate: true
+        # skip: true
+      rhel:
+        file: "~/Downloads/_ISO/Composer API Disk.qcow2"
+        image: "RHEL9-QCOW2.x86_64.qcow2"
+        name: "RHEL-Cloud-Template"
+        tags: "rhel"
+        user: "rhel"
+        vmid: "9004"
+        description: "RHEL 9 - Cloud Image Template"
+        download: false
+        skip: true
+  tasks:
+    - name: Copy SSH key to remote /tmp folder
+      ansible.builtin.copy:
+        src: "/Users/sixteenone/.ssh/id_ed25519.pub"
+        dest: "/tmp/id_ed25519.pub"
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: Include qemu_templates_build.yml
+      include_tasks: qemu_templates_build.yml
+      when: item.value.skip is not defined or item.value.skip == false
+      loop: "{{ templates | dict2items }}"
+
+    - name: Remove SSH key from remote tmp folder
+      ansible.builtin.file:
+        path: "/tmp/id_ed25519.pub"
+        state: absent
+      delegate_to: "{{ inventory_hostname }}"
