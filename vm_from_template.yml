@@ -1,0 +1,39 @@
+---
+- name: Clone Proxmox template to VM
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    # - .env
+    - files/qemu_data.yml
+    - files/pmx_servers.yml
+    # - ~/.ansible/data/qemu_pw
+
+  module_defaults:
+    community.proxmox.proxmox_kvm:
+      api_host: "{{ pmx_servers[pmx_server_host].api_host }}"
+      api_user: "{{ pmx_servers[pmx_server_host].api_user }}"
+      api_password: "{{ pmx_servers[pmx_server_host].api_password }}"
+      node: "{{ pmx_servers[pmx_server_host].api_node }}"
+    community.proxmox.proxmox_disk:
+      api_host: "{{ pmx_servers[pmx_server_host].api_host }}"
+      api_user: "{{ pmx_servers[pmx_server_host].api_user }}"
+      api_password: "{{ pmx_servers[pmx_server_host].api_password }}"
+    community.proxmox.proxmox_vm_info:
+      api_host: "{{ pmx_servers[pmx_server_host].api_host }}"
+      api_user: "{{ pmx_servers[pmx_server_host].api_user }}"
+      api_password: "{{ pmx_servers[pmx_server_host].api_password }}"
+
+  tasks:
+    - name: Clone and Start VM
+      include_tasks: qemu_create.yml
+      when: item.delete is not defined or item.delete == false or item.ignore is not defined or item.ignore == false
+      loop: "{{ clone_vm }}"
+      vars:
+        pmx_server_host: "{{ item.pmx_server_host | default(omit) }}"
+
+    - name: Stop & Delete VM
+      include_tasks: qemu_delete.yml
+      when: item.delete is defined and item.delete == true and not (item.ignore is defined and item.ignore == true)
+      loop: "{{ clone_vm }}"
+      vars:
+        pmx_server_host: "{{ item.pmx_server_host | default(omit) }}"
