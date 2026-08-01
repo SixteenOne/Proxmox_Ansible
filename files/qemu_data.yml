@@ -1,0 +1,22 @@
+clone_vm:
+- name: diglett
+  pmx_server_host: nostromo
+  template_name: "Fedora-Cloud-Template"
+  description: "<h1>Fedora 43 Cloud VM</h1><h2>Podman Host</h2>Hosting important Self Hosted systems"
+  vmid: 5001
+  memory: 4096  # Memory in MB
+  storage: "local-lvm"
+  disk_size: "+20G"  # Add extra disk size in to VM
+  state: started
+  # delete: true
+  # ignore: true
+- name: dugtrio
+  pmx_server_host: sulaco
+  template_name: "Fedora-Cloud-Template"
+  vmid: 5002
+  memory: 4096  # Memory in MB
+  storage: "local-lvm"
+  disk_size: "+20G"  # Add extra disk size in to VM
+  state: started
+  # delete: true
+  # ignore: true
